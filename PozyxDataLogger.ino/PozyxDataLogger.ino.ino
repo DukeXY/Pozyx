@@ -5,10 +5,22 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
+#include "RTClib.h"
+
 
 ////////////////////////////////////////////////
 ////////////////// PARAMETERS //////////////////
 ////////////////////////////////////////////////
+
+#if defined(ARDUINO_ARCH_SAMD)
+// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
+   #define Serial SerialUSB
+#endif
+
+RTC_DS1307 rtc;
+
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+
 int currentLog=0;
 int pushButton=8;
 bool bButtonPushed=false;
@@ -80,9 +92,39 @@ void setup(){
   //SetAnchorsManual();
 
   printCalibrationResult();
+
+  if (! rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
+
+  if (! rtc.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  }
+  
   delay(3000);
   
   Serial.println(F("Starting positioning and recording data: "));
+  DateTime now = rtc.now();
+  Serial.print(now.year(), DEC);
+  Serial.print('/');
+  Serial.print(now.month(), DEC);
+  Serial.print('/');
+  Serial.print(now.day(), DEC);
+  Serial.print(" (");
+  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+  Serial.print(") ");
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  Serial.print(now.second(), DEC);
+  Serial.println();
   last_millis = millis();
 }
 int cnt=0;
@@ -237,3 +279,24 @@ void SetAnchorsManual(){
  }
  
 }
+
+void writeDate() {
+  File data=SD.open(dataFileName,FILE_WRITE);
+  DateTime now = rtc.now();
+  data.print(now.year(), DEC);
+  data.print('/');
+  data.print(now.month(), DEC);
+  data.print('/');
+  data.print(now.day(), DEC);
+  data.print(" (");
+  data.print(daysOfTheWeek[now.dayOfTheWeek()]);
+  data.print(") ");
+  data.print(now.hour(), DEC);
+  data.print(':');
+  data.print(now.minute(), DEC);
+  data.print(':');
+  data.print(now.second(), DEC);
+  data.println();
+  data.close();
+}
+
