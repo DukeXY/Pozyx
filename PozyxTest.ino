@@ -36,12 +36,13 @@ int32_t anchors_y[4] = {0, 0, 7000, 8000};                  // anchor y-coordina
 
 boolean bRemote = false;                  // boolean to indicate if we want to read sensor data from the attached pozyx shield (value 0) or from a remote pozyx device (value 1)
 uint16_t destination_id = 0x6000;     // the network id of the other pozyx device: fill in the network id of the other device
-uint32_t last_millis;                 // used to compute the measurement interval in milliseconds 
+long last_millis;                 // used to compute the measurement interval in milliseconds 
 
 String dataFileName;
 ////////////////////////////////////////////////
 
 void setup(){
+  pinMode(9,OUTPUT);digitalWrite(9,HIGH);
   pinMode(4, OUTPUT); digitalWrite(4, LOW);
   pinMode(10, OUTPUT); digitalWrite(10, HIGH);
   pinMode(pushButton, INPUT); // button for new log
@@ -128,17 +129,22 @@ void setup(){
   last_millis = millis();
 }
 int cnt=0;
+bool flag=true;
 void loop(){
-  cnt++;
-  if (cnt==101) delay(1000000);
+  //cnt++;
+  //if (cnt==101) delay(1000000);
   int16_t sensor_data[24];
   uint8_t calib_status = 0; 
-  int i, dt;
+  int i;
+  long dt;
   int bButtonState = digitalRead(pushButton);
-  if ((bButtonState == 1) && (!bButtonPushed)) {bButtonPushed = true; currentLog++;}
+  if ((bButtonState == 1) && (!bButtonPushed)) {bButtonPushed = true; currentLog++;flag=true;Serial.println("New File");}
   if ((bButtonState == 0) && (bButtonPushed)) {bButtonPushed = false;}
   dataFileName = String(currentLog) + ".TXT";
-
+  if (flag) {
+    writeDate();
+    flag=false;
+  }
   File data=SD.open(dataFileName,FILE_WRITE);
   
   // print the measurement interval  
@@ -204,10 +210,12 @@ void loop(){
 
 // function to print the coordinates to the serial monitor
 void printCoordinates(coordinates_t coor){
+  Serial.print(",");
+  Serial.print("Coordinate");
   Serial.print(coor.x);
-  Serial.print(" ");
+  Serial.print(",");
   Serial.print(coor.y);
-  Serial.print(" ");
+  Serial.print(",");
   Serial.print(coor.z);
   Serial.println(); 
   
